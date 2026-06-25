@@ -104,13 +104,13 @@ def redact_images_in_folder(image_folder):
             ext = os.path.splitext(file)[1]
             if ext == '.png' or ext == '.jpg':
                 redaction_count += process_image(os.path.join(root, file), make_backup=False)
-    print(f'Total number of redactions: {redaction_count}')
+    return redaction_count
 
 def pdf_to_pngs(pdf_path, png_folder):
     pdf = fitz.open(pdf_path)
     for i in range(len(pdf)):
         page = pdf[i]
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+        pix = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72))
         page_path = os.path.join(png_folder, f'page_{i:04d}.png')
         print(f'Writing: {page_path}...')
         pix.save(page_path)
@@ -140,7 +140,7 @@ def main():
     pdf_to_pngs(source_pdf_path, temp_folder)
 
     # Now go redact the PNG files in the temp folder.
-    redact_images_in_folder(temp_folder)
+    num_redactions = redact_images_in_folder(temp_folder)
 
     # Lastly, combine the PNGs back into a PDF.
     destination_pdf_path = os.path.splitext(source_pdf_path)[0] + '_redacted.pdf'
@@ -148,6 +148,13 @@ def main():
     os.removedirs(temp_folder)
 
     print('Done!')
+    print(f'Total number of redactions: {num_redactions}')
 
 if __name__ == '__main__':
     main()
+
+    # STPTODO: Support the usage of apply_redactions in the PyMuPDF module.
+    #          This can be a better approach, because the resulting PDF will
+    #          retain vector graphics and a much smaller size.  The current
+    #          approach is still good, however, because it's the only way to
+    #          redact if the PDF is already image-based.
